@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <title>Dom2API · 16 px 光学优化图标</title>
+    <desc>为 16 像素单独设计。主线宽 1.8 px，星芒留白 0.75 px；省略后景眼图，仅保留纯白主线、箭头和星芒。轮廓间隙为几何挖空，露出真实底板。</desc>
+    <defs>
+        <linearGradient id="purple" gradientUnits="userSpaceOnUse" x1="2" y1="1.25" x2="14" y2="14.75">
+            <stop offset="0" stop-color="#A36BF3" />
+            <stop offset="1" stop-color="#5425AD" />
+        </linearGradient>
+        <linearGradient id="symbol" gradientUnits="userSpaceOnUse" x1="2.88" y1="4.16" x2="13.6" y2="12.16">
+            <stop offset="0" stop-color="#FFFFFF" />
+            <stop offset="0.5" stop-color="#F3E9FF" />
+            <stop offset="1" stop-color="#D7B9FF" />
+        </linearGradient>
+    </defs>
+    <rect x="1" y="1" width="14" height="14" rx="3" fill="url(#purple)" />
+    <!-- 后景眼图：独立调整粗细、对比度，并避让前景。 -->
+    <!-- 16 px 省略后景，避免亚像素碎片挤占星芒和箭头的空间。 -->
+    <!-- S 形主线及加大的箭头，减去星芒的留白区域。 -->
+    <path d="M 3.285 6.199 L 3.826 6.341 L 4.378 6.572 L 4.94 6.885 L 5.303 7.124 L 5.843 6.918 L 6.286 6.659 L 6.577 6.359 L 6.788 5.977 L 6.216 5.567 L 5.552 5.156 L 4.82 4.796 L 4.378 4.628 L 3.637 4.434 L 3.14 4.367 L 2.791 4.351 L 2.557 4.371 L 2.235 4.512 L 1.992 4.765 L 1.864 5.092 L 1.871 5.443 L 2.012 5.765 L 2.17 5.938 L 2.478 6.108 Z" fill="#FFFFFF" />
+    <path d="M 9.1 10.314 L 9.915 10.899 L 10.51 11.24 L 10.901 11.418 L 11.5 11.611 L 11.5 12.5 L 13.812 10.812 L 11.5 9.125 L 11.5 9.716 L 10.87 9.373 L 10.346 9.003 L 9.786 9.289 L 9.586 9.452 L 9.423 9.641 L 9.275 9.887 Z" fill="#FFFFFF" />
+    <!-- 加宽的 AI 星芒，保持清晰的四个尖角。 -->
+    <path d="M 8 4.3 C 8.48 6.89 8.9 7.408 11 8 C 8.9 8.592 8.48 9.11 8 11.7 C 7.52 9.11 7.1 8.592 5 8 C 7.1 7.408 7.52 6.89 8 4.3 Z" fill="#FFFFFF" />
+</svg>

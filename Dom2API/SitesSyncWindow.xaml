@@ -1,0 +1,284 @@
+﻿<Window x:Class="Dom2API.SitesSyncWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="同步来自站点的账号" Width="980" Height="720" MinWidth="780" MinHeight="520"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Background="#F4F3F1" Foreground="#24304A">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="MinWidth" Value="86" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#D7DEED" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Body" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Body" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Body" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="BorderBrush" Value="#D7DEED" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style x:Key="SyncListRow" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="8" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EAF2FC" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter Property="Background" Value="#EAF2FC" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <DataTemplate x:Key="ApiKeyTemplate">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="4" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="1" Style="{StaticResource SyncListRow}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <Grid HorizontalAlignment="Left">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="4" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                <Border Grid.Column="2" BorderThickness="1" BorderBrush="#3324756E" Background="#0324756E" Padding="2,0" CornerRadius="2" ToolTip="{Binding Parent.RateDescription}">
+                                    <TextBlock Text="{Binding RateText}" Foreground="#24756E" FontSize="9" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding GroupText}" Foreground="#8A94A6" FontSize="9" TextTrimming="CharacterEllipsis" ToolTip="{Binding GroupText}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding SoftwareStatusText}" Foreground="#667085" FontSize="9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding SoftwareStatusText}" />
+                        <Button Grid.Column="4" Content="添加到本地" Click="AddApiKey_Click" Padding="10,5" MinWidth="0" VerticalAlignment="Center" Visibility="{Binding AddVisibility}" IsEnabled="{Binding Parent.CanUseSnapshot}" />
+                        <Button Grid.Column="4" Content="从本地删除" Click="RemoveApiKey_Click" Padding="10,5" MinWidth="0" VerticalAlignment="Center" Foreground="#B0343B" ToolTip="删除对应的本地账号，保留站点 API 密钥" Visibility="{Binding RemoveVisibility}" IsEnabled="{Binding Parent.CanUseSnapshot}" />
+                        <Button Grid.Column="6" Click="DeleteRemoteApiKey_Click" Width="30" Padding="6,0" MinWidth="0"
+                                VerticalAlignment="Stretch" Foreground="#B0343B" AutomationProperties.Name="从站点删除 API 密钥"
+                                ToolTip="从站点删除 API 密钥，使其失效；保留已导入的本地账号配置" IsEnabled="{Binding Parent.CanUseSnapshot}">
+                            <Path Data="M3,5 H17 M7,5 V2 H13 V5 M5,5 L6,18 H14 L15,5 M8.5,8 V15 M11.5,8 V15"
+                                  Width="16" Height="16" Stretch="Uniform" StrokeThickness="1.5" StrokeLineJoin="Round"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="GroupTemplate">
+            <Border Margin="24,4" Style="{StaticResource SyncListRow}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <Grid HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="4" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                            <Border Grid.Column="2" BorderThickness="1" BorderBrush="#3324756E" Background="#0324756E" Padding="2,0" CornerRadius="2" ToolTip="{Binding Parent.RateDescription}">
+                                <TextBlock Text="{Binding RateText}" Foreground="#24756E" FontSize="9" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Text="{Binding DescriptionText}" Foreground="#8A94A6" FontSize="9" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                   ToolTip="{Binding Description}" Visibility="{Binding DescriptionVisibility}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Content="创建" Click="CreateGroup_Click" Padding="12,4" MinWidth="0" VerticalAlignment="Center" IsEnabled="{Binding Parent.CanUseSnapshot}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="24" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="24" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="24" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="1" Grid.Column="1" Margin="16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="同步来自站点的账号" FontSize="17" FontWeight="Bold" />
+                <TextBlock Text="自动识别 Sub2API 与 New API，统一管理站点和同步 API 密钥" TextWrapping="Wrap" Margin="0,0,12,0" Foreground="#667085" FontSize="9" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="添加站点" Click="AddSite_Click" Background="#4892F1" Foreground="White" BorderBrush="#4892F1" />
+        </Grid>
+        <TextBlock Grid.Row="3" Grid.Column="1" Margin="16,0" Text="启用“记住连接配置和账号”会将站点密码以明文保存到配置文件，请勿在共用电脑上使用相关功能。" TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="#7A849A" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding RememberSettingsEnabled, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter Property="Foreground" Value="#B0343B" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <ScrollViewer Grid.Row="5" Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <StackPanel Visibility="{Binding EmptySitesVisibility}">
+                    <Grid Height="28" />
+                    <TextBlock Text="尚未添加站点，点击右上角“添加站点”开始同步。" Foreground="#8A94A6" TextAlignment="Center" />
+                    <Grid Height="28" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding Sites}" AutomationProperties.Name="站点列表">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="12" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                </Grid.ColumnDefinitions>
+                                <Border Background="White" BorderBrush="#DEE5EE" BorderThickness="1" CornerRadius="16" Padding="18">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="16" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="17" FontWeight="Bold" TextTrimming="CharacterEllipsis" ToolTip="{Binding DisplayName}" />
+                                                    <Grid Width="6" />
+                                                    <Border BorderThickness="1" BorderBrush="#8A94A6" VerticalAlignment="Bottom" CornerRadius="8">
+                                                        <Grid Margin="4,2">
+                                                            <TextBlock Text="{Binding TypeText}" FontSize="9" />
+                                                        </Grid>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock VerticalAlignment="Center" FontSize="9" TextTrimming="CharacterEllipsis" ToolTip="{Binding Site.BaseUrl}">
+                                                    <Hyperlink TextDecorations="{x:Null}" NavigateUri="{Binding Site.BaseUrl}" RequestNavigate="SiteUrl_RequestNavigate" Foreground="#8A94A6" Cursor="Hand" AutomationProperties.Name="在浏览器中打开站点">
+                                                        <Run Text="{Binding Site.BaseUrl, Mode=OneWay}" />
+                                                    </Hyperlink>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" IsEnabled="{Binding CanOperate}">
+                                                <TextBlock Text="{Binding BalanceText}" FontSize="17" FontWeight="Bold" VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#24756E" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsBalanceNonPositive}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#B0343B" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <Grid Width="16" />
+                                                <Button Content="刷新" Click="RefreshSite_Click" Padding="10,5" MinWidth="0" />
+                                                <Grid Width="8" />
+                                                <Button Content="上移" Click="MoveSiteUp_Click" Padding="10,5" MinWidth="0" IsEnabled="{Binding CanMoveUp}" />
+                                                <Grid Width="8" />
+                                                <Button Content="下移" Click="MoveSiteDown_Click" Padding="10,5" MinWidth="0" IsEnabled="{Binding CanMoveDown}" />
+                                                <Grid Width="8" />
+                                                <Button Content="编辑" Click="EditSite_Click" Padding="10,5" MinWidth="0" />
+                                                <Grid Width="8" />
+                                                <Button Content="移除" Click="RemoveSite_Click" Padding="10,5" MinWidth="0" Foreground="#B0343B" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel Visibility="{Binding StatusVisibility}">
+                                            <Grid Height="8" />
+                                            <TextBlock Text="{Binding StatusText}" Foreground="#B0343B" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Grid Height="12.5" />
+                                        <StackPanel>
+                                            <Grid Height="1" Background="#24756E" Opacity="0.6" />
+                                            <Grid Height="4" />
+                                            <TextBlock Text="API 密钥" Foreground="#24756E" />
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <StackPanel Visibility="{Binding EmptyKeysVisibility}">
+                                                <TextBlock Text="暂无 API 密钥" Foreground="#8A94A6" />
+                                            </StackPanel>
+                                            <ItemsControl ItemsSource="{Binding Keys}" ItemTemplate="{StaticResource ApiKeyTemplate}" />
+                                        </StackPanel>
+                                        <Grid Height="12.5" />
+                                        <StackPanel>
+                                            <Grid Height="1" Background="#24756E" Opacity="0.6" />
+                                            <Grid Height="4" />
+                                            <TextBlock Text="未创建 API 密钥的分组" Foreground="#24756E" />
+                                        </StackPanel>
+                                        <Grid Height="4" />
+                                        <StackPanel Visibility="{Binding EmptyGroupsVisibility}">
+                                            <TextBlock Text="所有可用分组都已有 API 密钥" Foreground="#8A94A6" />
+                                        </StackPanel>
+                                        <ItemsControl Margin="-24,0" ItemsSource="{Binding UnkeyedGroups}" ItemTemplate="{StaticResource GroupTemplate}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="3" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+        <Grid Grid.Row="7" Grid.Column="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding WindowStatus}" Foreground="#667085" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Grid.Column="2" Content="关闭" IsCancel="True" />
+        </Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,91 @@
+﻿<Window x:Class="Dom2API.AccountEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="编辑上游账号" Width="540" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Background="#F4F3F1" Foreground="#24304A">
+    <Grid Margin="24">
+        <Grid.Resources>
+            <Style TargetType="TextBox">
+                <Setter Property="Padding" Value="8,6" />
+                <Setter Property="BorderBrush" Value="#D7DEED" />
+                <Setter Property="Background" Value="#FFFFFF" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                                <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style TargetType="PasswordBox">
+                <Setter Property="Padding" Value="8,6" />
+                <Setter Property="BorderBrush" Value="#D7DEED" />
+                <Setter Property="Background" Value="#FFFFFF" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="PasswordBox">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                                <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style TargetType="Button">
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="MinWidth" Value="108" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Background" Value="White" />
+                <Setter Property="BorderBrush" Value="#D7DEED" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="90" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="名称（可选）" VerticalAlignment="Center" />
+        <TextBox x:Name="NameBox" Grid.Column="1" Padding="8" Margin="0,0,0,12" AutomationProperties.Name="账号名称" />
+        <TextBlock Text="API 基址" Grid.Row="1" VerticalAlignment="Center" />
+        <TextBox x:Name="BaseUrlBox" Grid.Row="1" Grid.Column="1" Padding="8" Margin="0,0,0,12" AutomationProperties.Name="上游 API 基址" />
+        <TextBlock Text="API 密钥" Grid.Row="2" VerticalAlignment="Center" />
+        <PasswordBox x:Name="KeyBox" Grid.Row="2" Grid.Column="1" Padding="8" AutomationProperties.Name="API 密钥" />
+        <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,14,0,0">
+            <CheckBox x:Name="UseProxyBox" Content="使用 Socks5 代理" AutomationProperties.Name="使用 Socks5 代理" />
+            <TextBox x:Name="ProxyBox" Margin="0,8,0,0" Text="socks5://127.0.0.1:1080"
+                     IsEnabled="{Binding IsChecked, ElementName=UseProxyBox}" AutomationProperties.Name="Socks5 代理地址" />
+            <TextBlock x:Name="ErrorText" Foreground="#B0343B" TextWrapping="Wrap" Margin="0,14,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="取消" IsCancel="True" Padding="20,8" />
+            <Button Content="保存" IsDefault="True" Click="Save_Click" Padding="20,8" Margin="12,0,0,0" Background="#4892F1" Foreground="White" BorderBrush="#4892F1" />
+        </StackPanel>
+    </Grid>
+</Window>
