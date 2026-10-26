@@ -387,8 +387,20 @@ internal sealed class NewApiClient : IAsyncDisposable
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
         if (!response.IsSuccessStatusCode) return null;
-        await response.Content.LoadIntoBufferAsync(maxBytes, token);
-        return await response.Content.ReadAsByteArrayAsync(token);
+        // 只读取前 maxBytes 字节。LoadIntoBufferAsync 会在完整响应超过上限时
+        // 直接抛错；大型打包脚本可能把请求头声明放在开头，不能因此整段放弃。
+        if (maxBytes <= 0) return [];
+        await using var stream = await response.Content.ReadAsStreamAsync(token);
+        using var buffer = new MemoryStream(Math.Min(maxBytes, 64 * 1024));
+        byte[] chunk = new byte[Math.Min(maxBytes, 64 * 1024)];
+        while (buffer.Length < maxBytes)
+        {
+            int count = await stream.ReadAsync(chunk.AsMemory(0,
+                (int)Math.Min(chunk.Length, maxBytes - buffer.Length)), token);
+            if (count == 0) break;
+            await buffer.WriteAsync(chunk.AsMemory(0, count), token);
+        }
+        return buffer.ToArray();
     }
 
     private static JsonElement Data(JsonElement root) => root.GetProperty("data");
