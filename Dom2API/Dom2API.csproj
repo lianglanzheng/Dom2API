@@ -14,10 +14,12 @@
     <ItemGroup>
         <Resource Include="Assets\Dom2API.ico" />
         <Resource Include="Assets\Dom2API.png" />
+        <EmbeddedResource Include="Services\ApplyUpdate.ps1" />
         <Using Remove="System.Windows.Forms" />
         <Using Remove="System.Drawing" />
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
         <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
+        <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
     </ItemGroup>
 
 </Project>

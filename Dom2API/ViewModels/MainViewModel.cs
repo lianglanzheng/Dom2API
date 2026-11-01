@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Dom2API.Models;
 using Dom2API.Services;
 
@@ -23,6 +25,11 @@ internal sealed class MainViewModel : INotifyPropertyChanged
     private string cooldownMinutes = "10";
     private bool isRunning;
     private bool isBusy;
+    private AccountPreset? selectedAccountPreset;
+    private ReleaseUpdate? availableUpdate;
+    private string updateCheckStatus = "";
+    private bool isUpdating;
+    private string updateInstallStatus = "";
     private SessionSummary? selectedSession;
     private CaptureRecord? selectedRequest;
     private MessageEntry? selectedMessage;
@@ -39,6 +46,37 @@ internal sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>在界面属性改变时发出通知。</summary>
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>读取当前程序集的发布版本（包含预发布标识和提交信息），兼容单文件发布。</summary>
+    public string ApplicationVersion { get; } = typeof(MainViewModel).Assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? typeof(MainViewModel).Assembly.GetName().Version?.ToString() ?? "未知";
+
+    /// <summary>当前进程使用的运行时和体系结构，便于排查问题。</summary>
+    public string RuntimeDescription { get; } = $"{RuntimeInformation.FrameworkDescription} · {RuntimeInformation.ProcessArchitecture}";
+
+    /// <summary>启动检查发现的新正式版；未发现更新时为空。</summary>
+    public ReleaseUpdate? AvailableUpdate
+    {
+        get => availableUpdate;
+        set { SetField(ref availableUpdate, value); OnPropertyChanged(nameof(CanInstallUpdate)); }
+    }
+
+    /// <summary>后台检查进度或非阻断的失败提示。</summary>
+    public string UpdateCheckStatus { get => updateCheckStatus; set => SetField(ref updateCheckStatus, value); }
+
+    /// <summary>下载和准备更新期间避免重复操作以及配置变更。</summary>
+    public bool IsUpdating
+    {
+        get => isUpdating;
+        set { SetField(ref isUpdating, value); NotifyServiceControls(); }
+    }
+
+    /// <summary>是否可以发起更新。</summary>
+    public bool CanInstallUpdate => AvailableUpdate is not null && !IsUpdating && !IsBusy;
+
+    /// <summary>更新下载进度或失败原因。</summary>
+    public string UpdateInstallStatus { get => updateInstallStatus; set => SetField(ref updateInstallStatus, value); }
+
     /// <summary>获取或设置端口输入。</summary>
     public string Port
     {
@@ -54,6 +92,34 @@ internal sealed class MainViewModel : INotifyPropertyChanged
 
     /// <summary>账号行保持对象身份，状态变化仅刷新受影响的绑定。</summary>
     public ObservableCollection<UpstreamAccountViewModel> Upstreams { get; } = [];
+
+    /// <summary>可选的账号启用预设。</summary>
+    public ObservableCollection<AccountPreset> AccountPresets { get; } = [];
+
+    /// <summary>当前预设，手动调整账号不覆盖其快照。</summary>
+    public AccountPreset? SelectedAccountPreset
+    {
+        get => selectedAccountPreset;
+        set
+        {
+            SetField(ref selectedAccountPreset, value);
+            RefreshAccountPresetState();
+        }
+    }
+
+    /// <summary>是否选中了可编辑的预设。</summary>
+    public bool HasSelectedAccountPreset => SelectedAccountPreset is not null;
+
+    /// <summary>当前账号启用情况是否偏离所选预设。</summary>
+    public bool IsAccountPresetModified => SelectedAccountPreset is { } preset
+        && Upstreams.Any(row => row.IsEnabled != preset.IsAccountEnabled(row.Account.Id));
+
+    /// <summary>刷新手动修改和账号增删后的预设提示。</summary>
+    public void RefreshAccountPresetState()
+    {
+        OnPropertyChanged(nameof(HasSelectedAccountPreset));
+        OnPropertyChanged(nameof(IsAccountPresetModified));
+    }
 
     /// <summary>刷新账号运行状态。</summary>
     public void UpdateUpstreamStatuses(ProxyService service)
@@ -122,16 +188,16 @@ internal sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>获取配置是否可以编辑。</summary>
-    public bool CanEditSettings => !IsRunning && !IsBusy;
+    public bool CanEditSettings => !IsRunning && !IsBusy && !IsUpdating;
 
     /// <summary>获取启动按钮是否可用。</summary>
-    public bool CanStart => !IsRunning && !IsBusy;
+    public bool CanStart => !IsRunning && !IsBusy && !IsUpdating;
 
     /// <summary>获取停止按钮是否可用。</summary>
-    public bool CanStop => IsRunning && !IsBusy;
+    public bool CanStop => IsRunning && !IsBusy && !IsUpdating;
 
     /// <summary>账号可以在服务运行中调整，启停或配置切换期间禁用。</summary>
-    public bool CanManageAccounts => !IsBusy;
+    public bool CanManageAccounts => !IsBusy && !IsUpdating;
 
     /// <summary>获取清除记录按钮是否可用。</summary>
     public bool CanClearRecords => !IsBusy && ActiveRequests == 0;
@@ -321,6 +387,7 @@ internal sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStop));
         OnPropertyChanged(nameof(CanManageAccounts));
         OnPropertyChanged(nameof(CanClearRecords));
+        OnPropertyChanged(nameof(CanInstallUpdate));
     }
 
     /// <summary>

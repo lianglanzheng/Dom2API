@@ -91,6 +91,111 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="AccountPresetItem" TargetType="ComboBoxItem">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Foreground" Value="#24304A" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="18" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter VerticalAlignment="Center" />
+                                <Path x:Name="SelectedMark" Grid.Column="1" Data="M1,5 L4,8 L10,2" Stroke="#1769E8" StrokeThickness="1.5"
+                                      HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Hidden" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#EAF3FF" />
+                                <Setter Property="Foreground" Value="#1769E8" />
+                                <Setter TargetName="SelectedMark" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#EAF3FF" />
+                                <Setter Property="Foreground" Value="#1769E8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccountPresetComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#24304A" />
+            <Setter Property="BorderBrush" Value="#D7DEED" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="MaxDropDownHeight" Value="280" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource AccountPresetItem}" />
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" /></DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="Root" SnapsToDevicePixels="True">
+                            <ToggleButton x:Name="DropDownToggle" Focusable="False" ClickMode="Press"
+                                          Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" />
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Grid Margin="{TemplateBinding Padding}" IsHitTestVisible="False">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="20" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" VerticalAlignment="Center" />
+                                <Path x:Name="Arrow" Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7A849A" StrokeThickness="1.5"
+                                      HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                            </Grid>
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
+                                   Focusable="False" PopupAnimation="Fade">
+                                <Border Background="White" BorderBrush="#D7DEED" BorderThickness="1" CornerRadius="8" Padding="4" Margin="0,5,0,0"
+                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                                                  CanContentScroll="True">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DropDownToggle" Property="Background" Value="#F5F9FF" />
+                                <Setter TargetName="DropDownToggle" Property="BorderBrush" Value="#4892F1" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="DropDownToggle" Property="BorderBrush" Value="#4892F1" /></Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="DropDownToggle" Property="BorderBrush" Value="#4892F1" />
+                                <Setter TargetName="Arrow" Property="Stroke" Value="#1769E8" />
+                                <Setter TargetName="Arrow" Property="RenderTransform"><Setter.Value><RotateTransform Angle="180" /></Setter.Value></Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value="0.4" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="AccountMoveButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Style.Triggers>
                 <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger>
@@ -439,6 +544,39 @@
                                 <DockPanel Margin="0,0,0,12">
                                     <Button Content="添加账号" Click="AddUpstream_Click" IsEnabled="{Binding CanManageAccounts}" DockPanel.Dock="Right" HorizontalAlignment="Right" />
                                     <Button Content="同步账号" Click="SyncAccounts_Click" IsEnabled="{Binding CanManageAccounts}" DockPanel.Dock="Right" HorizontalAlignment="Right" Margin="0,0,10,0" />
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="0,0,10,0" IsEnabled="{Binding CanManageAccounts}">
+                                        <Button Content="新建" Click="CreateAccountPreset_Click" MinWidth="0" Padding="10,6" ToolTip="以当前账号启用情况创建预设" />
+                                        <Grid Width="160">
+                                            <ComboBox x:Name="AccountPresetBox" ItemsSource="{Binding AccountPresets}" Style="{StaticResource AccountPresetComboBox}"
+                                                      SelectedItem="{Binding SelectedAccountPreset, Mode=TwoWay}" SelectionChanged="AccountPreset_SelectionChanged"
+                                                      VerticalContentAlignment="Center" AutomationProperties.Name="账号预设"
+                                                      ToolTip="切换后立即应用账号启用状态；未记录的账号默认禁用。" />
+                                            <TextBlock Text="选择预设" Margin="10,0,24,0" VerticalAlignment="Center" Foreground="#7A849A" IsHitTestVisible="False">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SelectedAccountPreset}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                        <Button Content="恢复" Click="RestoreAccountPreset_Click" MinWidth="0" Padding="10,6" ToolTip="当前启用情况已修改；点击恢复所选预设。">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAccountPresetModified}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Content="修改" Click="EditAccountPreset_Click" IsEnabled="{Binding HasSelectedAccountPreset}" MinWidth="0" Padding="10,6" ToolTip="重命名或用当前启用情况更新预设" />
+                                        <Button Content="删除" Click="DeleteAccountPreset_Click" IsEnabled="{Binding HasSelectedAccountPreset}" MinWidth="0" Padding="10,6" />
+                                    </StackPanel>
                                     <TextBlock Text="账号管理" FontSize="17" FontWeight="Bold" VerticalAlignment="Center" />
                                 </DockPanel>
                                 <ItemsControl ItemsSource="{Binding Upstreams}" AutomationProperties.Name="上游账号列表">
@@ -874,14 +1012,126 @@
             </TabItem>
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <Path Data="M6,2 L2,10 L6,18 M14,2 L18,10 L14,18" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" StrokeThickness="1.7" StrokeLineJoin="Round" Width="20" Height="20" Stretch="Uniform" Margin="0,0,8,0" />
-                        <TextBlock Text="调试" Style="{StaticResource TabTitle}" />
-                    </StackPanel>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="M6,2 L2,10 L6,18 M14,2 L18,10 L14,18" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" StrokeThickness="1.7" StrokeLineJoin="Round" Width="20" Height="20" Stretch="Uniform" Margin="0,0,8,0" />
+                            <TextBlock Text="工具" Style="{StaticResource TabTitle}" />
+                        </StackPanel>
+                        <Ellipse Width="7" Height="7" Fill="#F59E0B" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,-10,0"
+                                 ToolTip="发现新版本" AutomationProperties.Name="有可用更新">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AvailableUpdate}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                    </Grid>
                 </TabItem.Header>
                 <ScrollViewer Foreground="#27324B" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <Border Padding="28">
-                        <Border Background="White" BorderBrush="#DDE4F0" BorderThickness="1" CornerRadius="16" Padding="20" VerticalAlignment="Top">
+                    <StackPanel Margin="28">
+                        <Border Background="White" BorderBrush="#DDE4F0" BorderThickness="1" CornerRadius="16" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="关于 Dom2API" FontSize="17" FontWeight="Bold" />
+                                <TextBlock Text="Windows 桌面 AI API 转发与调试工具，支持多上游账号调度、对话查看、网络请求分析和记录导出。"
+                                           Foreground="#667085" TextWrapping="Wrap" Margin="0,8,0,20" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="16" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="12" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="12" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="软件版本" Foreground="#667085" />
+                                    <TextBlock Grid.Column="2" Text="{Binding ApplicationVersion}" TextWrapping="Wrap" AutomationProperties.Name="软件版本" />
+                                    <TextBlock Grid.Row="2" Text="运行环境" Foreground="#667085" />
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding RuntimeDescription}" TextWrapping="Wrap" />
+                                    <TextBlock Grid.Row="4" Text="GitHub" Foreground="#667085" />
+                                    <TextBlock Grid.Row="4" Grid.Column="2" TextWrapping="Wrap">
+                                        <Hyperlink NavigateUri="https://github.com/lianglanzheng/Dom2API" RequestNavigate="GitHub_RequestNavigate"
+                                                   Foreground="#1769E8" Cursor="Hand" ToolTip="在默认浏览器中打开项目主页" AutomationProperties.Name="打开 Dom2API GitHub 项目主页">
+                                            <Run Text="https://github.com/lianglanzheng/Dom2API" />
+                                        </Hyperlink>
+                                    </TextBlock>
+                                </Grid>
+                                <Border Background="#20FFCA00" BorderBrush="#55FFCA00" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,16,0,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AvailableUpdate}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                            <TextBlock Text="{Binding AvailableUpdate.Version, StringFormat=发现新版本 {0}}" Foreground="#E49700" FontWeight="Bold" TextWrapping="Wrap" />
+                                            <TextBlock Margin="0,8,0,0" TextWrapping="Wrap">
+                                                <Hyperlink NavigateUri="{Binding AvailableUpdate.ReleaseUrl}" RequestNavigate="GitHub_RequestNavigate" Foreground="#E49700"
+                                                           Cursor="Hand" AutomationProperties.Name="查看新版发布说明与下载">
+                                                    <Run Text="查看新版发布说明与下载" />
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="更新" Click="InstallUpdate_Click" IsEnabled="{Binding CanInstallUpdate}" VerticalAlignment="Center"
+                                                Background="#F59E0B" Foreground="White" BorderBrush="#F59E0B" ToolTip="自动下载适合此 Windows 架构的新版，完成后替换当前程序并重启。"
+                                                AutomationProperties.Name="下载并安装更新">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Opacity" Value="0.45" />
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding UpdateInstallStatus}" Foreground="#667085" TextWrapping="Wrap" Margin="0,8,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UpdateInstallStatus}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                                <TextBlock Text="{Binding UpdateCheckStatus}" Foreground="#667085" TextWrapping="Wrap" Margin="0,12,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding UpdateCheckStatus}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock x:Name="AboutLinkError" Text="" Style="{StaticResource ErrorText}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Margin="0,20,0,0" Background="White" BorderBrush="#DDE4F0" BorderThickness="1" CornerRadius="16" Padding="20" VerticalAlignment="Top">
                             <StackPanel>
                                 <TextBlock Text="网络记录导出" FontSize="17" FontWeight="Bold" />
                                 <Grid Height="8" />
@@ -894,7 +1144,9 @@
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                             <Style.Triggers>
-                                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45" /></Trigger>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter Property="Opacity" Value="0.45" />
+                                                </Trigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Button.Style>
@@ -914,7 +1166,7 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
-                    </Border>
+                    </StackPanel>
                 </ScrollViewer>
             </TabItem>
         </TabControl>

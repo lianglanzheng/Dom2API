@@ -11,6 +11,10 @@ public sealed class RememberedSettings
     public string CooldownMinutes { get; set; } = "10";
     /// <summary>有序上游账号列表。</summary>
     public required List<UpstreamAccount> Upstreams { get; set; }
+    /// <summary>账号启用预设；旧配置未提供时使用空列表。</summary>
+    public List<AccountPreset> AccountPresets { get; set; } = [];
+    /// <summary>当前选中的预设；账号状态可以包含尚未保存到预设的修改。</summary>
+    public string? SelectedAccountPresetId { get; set; }
     /// <summary>所有类型的有序站点连接；仅在记住配置时保存。</summary>
     [System.Text.Json.Serialization.JsonRequired]
     public List<SiteConnection> Sites { get; set; } = [];

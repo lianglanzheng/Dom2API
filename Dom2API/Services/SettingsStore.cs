@@ -52,6 +52,13 @@ internal sealed class SettingsStore
             throw new JsonException("上游账号 id 必须非空且不能重复。");
         }
 
+        if (settings.AccountPresets is null || settings.AccountPresets.Any(preset => preset is null
+            || string.IsNullOrWhiteSpace(preset.Id) || string.IsNullOrWhiteSpace(preset.Name)
+            || preset.AccountStates is null || preset.AccountStates.Keys.Any(string.IsNullOrWhiteSpace))
+            || settings.AccountPresets.Select(preset => preset.Id).Distinct().Count() != settings.AccountPresets.Count
+            || settings.AccountPresets.Select(preset => preset.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != settings.AccountPresets.Count)
+            throw new JsonException("账号预设名称、标识或启用状态无效，名称和标识不能重复。");
+
         if (settings.Sites is null || settings.Sites.Any(site => site is null
             || string.IsNullOrWhiteSpace(site.Id) || site.Name is null || string.IsNullOrWhiteSpace(site.BaseUrl)
             || string.IsNullOrWhiteSpace(site.Username) || string.IsNullOrWhiteSpace(site.Password)

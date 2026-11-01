@@ -1,8 +1,10 @@
 ﻿using System.ComponentModel;
 using System.Windows;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Threading;
+using System.Windows.Navigation;
 using Dom2API.Models;
 using Dom2API.Services;
 using Dom2API.ViewModels;
@@ -94,6 +96,13 @@ public partial class MainWindow : Window
             Show();
         }
 
+        if (!updateCheckStarted)
+        {
+            updateCheckStarted = true;
+            _ = CheckForUpdatesAsync();
+            _ = CleanupUpdateDirectoriesAsync();
+        }
+
         if (rememberedServiceWasRunning && RememberSettingsBox.IsChecked == true && !closeRequested)
         {
             await StartServiceAsync();
@@ -142,6 +151,8 @@ public partial class MainWindow : Window
     /// </summary>
     protected override void OnClosed(EventArgs e)
     {
+        updateCheckCancellation.Cancel();
+        updateCheckCancellation.Dispose();
         trayIcon.Visible = false;
         trayIcon.Dispose();
         trayImage.Dispose();
@@ -169,6 +180,8 @@ public partial class MainWindow : Window
             viewModel.Upstreams.Clear();
             foreach (var account in settings.Upstreams) viewModel.Upstreams.Add(new UpstreamAccountViewModel(account));
             rememberedSites = settings.Sites;
+            foreach (var preset in settings.AccountPresets) viewModel.AccountPresets.Add(preset);
+            viewModel.SelectedAccountPreset = viewModel.AccountPresets.FirstOrDefault(preset => preset.Id == settings.SelectedAccountPresetId);
             viewModel.RenumberAccounts();
             rememberedServiceWasRunning = settings.IsRunning;
             rememberedStartOnLogin = settings.StartOnLogin;
@@ -242,6 +255,7 @@ public partial class MainWindow : Window
     private async Task ApplyAccountsAsync()
     {
         viewModel.RenumberAccounts();
+        viewModel.RefreshAccountPresetState();
         viewModel.ServiceError = "";
         viewModel.IsBusy = true;
         try
@@ -387,16 +401,7 @@ public partial class MainWindow : Window
 
         try
         {
-            settingsStore.Save(new RememberedSettings
-            {
-                Port = viewModel.Port,
-                TimeoutSeconds = viewModel.TimeoutSeconds,
-                CooldownMinutes = viewModel.CooldownMinutes,
-                Upstreams = viewModel.Upstreams.Select(row => row.Account).ToList(),
-                Sites = rememberedSites.Select(site => site with { }).ToList(),
-                IsRunning = viewModel.IsRunning,
-                StartOnLogin = rememberedStartOnLogin
-            });
+            settingsStore.Save(BuildRememberedSettings());
             viewModel.SettingsError = "";
             return true;
         }
@@ -407,6 +412,19 @@ public partial class MainWindow : Window
             return false;
         }
     }
+
+    private RememberedSettings BuildRememberedSettings() => new()
+    {
+        Port = viewModel.Port,
+        TimeoutSeconds = viewModel.TimeoutSeconds,
+        CooldownMinutes = viewModel.CooldownMinutes,
+        Upstreams = viewModel.Upstreams.Select(row => row.Account).ToList(),
+        AccountPresets = viewModel.AccountPresets.ToList(),
+        SelectedAccountPresetId = viewModel.SelectedAccountPreset?.Id,
+        Sites = rememberedSites.Select(site => site with { }).ToList(),
+        IsRunning = viewModel.IsRunning,
+        StartOnLogin = rememberedStartOnLogin
+    };
 
     /// <summary>
     /// 验证界面配置并异步启动服务。
@@ -486,6 +504,21 @@ public partial class MainWindow : Window
     /// 在界面线程上合并后台捕获数据的更新。
     /// </summary>
     private void RefreshTimer_Tick(object? sender, EventArgs e) => viewModel.Refresh();
+
+    /// <summary>使用系统默认浏览器打开项目主页，并在关于板块提示打开失败。</summary>
+    private void GitHub_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        e.Handled = true;
+        try
+        {
+            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            AboutLinkError.Text = "";
+        }
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
+        {
+            AboutLinkError.Text = "无法打开 GitHub 链接：" + exception.Message;
+        }
+    }
 
     /// <summary>选择保存位置，导出所有已捕获请求，不受当前网络页选择影响。</summary>
     private async void ExportNetworkRecords_Click(object sender, RoutedEventArgs e)
