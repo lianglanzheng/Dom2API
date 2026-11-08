@@ -81,7 +81,9 @@ internal sealed class ProxyService : IAsyncDisposable
                 if (inputs.TryGetValue(pair.Key, out var input)
                     && Uri.TryCreate(input.BaseUrl, UriKind.Absolute, out var uri)
                     && uri == pair.Value.Settings.UpstreamBaseUri && input.ApiKey.Trim() == pair.Value.Settings.ApiKey
-                    && Socks5Proxy.Normalize(input.Proxy) == pair.Value.Settings.Proxy) continue;
+                    && Socks5Proxy.Normalize(input.Proxy) == pair.Value.Settings.Proxy
+                    && input.ManualRate == pair.Value.Settings.ManualRate
+                    && input.AutoDetectRate == pair.Value.Settings.AutoDetectRate) continue;
                 accounts.Remove(pair.Key);
                 removed.Add(pair.Value);
             }
@@ -122,7 +124,8 @@ internal sealed class ProxyService : IAsyncDisposable
         {
             if (accounts.TryGetValue(settings.Id, out var existing)
                 && existing.Settings.UpstreamBaseUri == settings.UpstreamBaseUri
-                && existing.Settings.ApiKey == settings.ApiKey && existing.Settings.Proxy == settings.Proxy)
+                && existing.Settings.ApiKey == settings.ApiKey && existing.Settings.Proxy == settings.Proxy
+                && existing.Settings.ManualRate == settings.ManualRate && existing.Settings.AutoDetectRate == settings.AutoDetectRate)
             {
                 existing.Settings = settings;
                 if (proxy is not null) existing.ConfigureHealth(proxy.TimeoutThreshold, proxy.Cooldown);
@@ -258,8 +261,12 @@ internal sealed class ProxyService : IAsyncDisposable
         public void Dispose() => Cancellation.Dispose();
     }
 
-    private static AccountRuntime? ChooseAccount(IEnumerable<AccountRuntime> candidates, HashSet<string> tried)
-        => candidates.Where(account => account.Settings.IsEnabled && !tried.Contains(account.Settings.Id))
+    private static IEnumerable<AccountRuntime> EligibleAccounts(IEnumerable<AccountRuntime> candidates, HashSet<string> tried, string? model)
+        => candidates.Where(account => account.Settings.IsEnabled && !tried.Contains(account.Settings.Id)
+            && account.Settings.MatchesModel(model));
+
+    private static AccountRuntime? ChooseAccount(IEnumerable<AccountRuntime> candidates, HashSet<string> tried, string? model)
+        => EligibleAccounts(candidates, tried, model)
             .Select(account => (Account: account, Health: account.Health.Refresh(), Rate: account.Billing.State.EffectiveRate))
             .OrderBy(item => item.Health.Status)
             .ThenBy(item => item.Health.HealthLevel ?? 0)
@@ -285,6 +292,9 @@ internal sealed class ProxyService : IAsyncDisposable
             using var requestCapture = new MemoryStream();
             await context.Request.Body.CopyToAsync(requestCapture, token).ConfigureAwait(false);
             byte[] requestBytes = requestCapture.ToArray();
+            string requestBody = CaptureFormatting.BodyToText(requestBytes, context.Request.ContentType,
+                SplitHeader(context.Request.Headers.ContentEncoding.ToString()));
+            string? model = ReadRequestModel(requestBody);
             string rawTarget = context.Features.Get<IHttpRequestFeature>()?.RawTarget
                 ?? context.Request.Path + context.Request.QueryString;
             // 此处只缓存可重放的下游正文，不创建额外的“父请求”记录。
@@ -319,7 +329,7 @@ internal sealed class ProxyService : IAsyncDisposable
                     {
                         errorResponse?.Selected.TrySetResult(false);
                         errorResponse = response;
-                        if (!routingAccounts.Any(account => account.Settings.IsEnabled && !tried.Contains(account.Settings.Id)))
+                        if (!EligibleAccounts(routingAccounts, tried, model).Any())
                             firstResponse.TrySetResult(response);
                     }
                     nextHedge = Task.CompletedTask;
@@ -328,14 +338,14 @@ internal sealed class ProxyService : IAsyncDisposable
 
                 if (pending.Count == 0 || nextHedge.IsCompleted)
                 {
-                    var account = ChooseAccount(routingAccounts, tried);
+                    var account = ChooseAccount(routingAccounts, tried, model);
                     if (account is not null)
                     {
                         tried.Add(account.Settings.Id);
                         var attempt = new Attempt(account, token);
                         attempts.Add(attempt);
                         pending.Add(attempt);
-                        attempt.Completion = RunAttemptAsync(context, attempt, rawTarget, requestBytes,
+                        attempt.Completion = RunAttemptAsync(context, attempt, rawTarget, requestBytes, requestBody,
                             httpClients.Get(account.Settings.Proxy), stopToken, firstResponse);
                         nextHedge = Task.Delay(timeout, delays.Token);
                     }
@@ -354,8 +364,10 @@ internal sealed class ProxyService : IAsyncDisposable
                 await Task.WhenAny(pending.Select(attempt => (Task)attempt.Ready.Task).Append(nextHedge).Append(firstResponse.Task))
                     .WaitAsync(token).ConfigureAwait(false);
             }
-            context.Response.StatusCode = StatusCodes.Status502BadGateway;
-            await context.Response.WriteAsJsonAsync(new { error = new { message = "所有可用上游连接均失败。", type = "proxy_error" } }, token)
+            context.Response.StatusCode = attempts.Count == 0 ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status502BadGateway;
+            string message = attempts.Count > 0 ? "所有可用上游连接均失败。"
+                : model is null ? "没有启用的上游账号。" : "没有启用且匹配请求模型的上游账号。";
+            await context.Response.WriteAsJsonAsync(new { error = new { message, type = "proxy_error" } }, token)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { context.Abort(); }
@@ -378,7 +390,20 @@ internal sealed class ProxyService : IAsyncDisposable
         }
     }
 
-    private async Task RunAttemptAsync(HttpContext context, Attempt attempt, string rawTarget, byte[] requestBytes,
+    private static string? ReadRequestModel(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("model", out var model) && model.ValueKind == JsonValueKind.String
+                ? model.GetString() : null;
+        }
+        catch (JsonException) { return null; }
+    }
+
+    private async Task RunAttemptAsync(HttpContext context, Attempt attempt, string rawTarget, byte[] requestBytes, string requestBody,
         HttpClient httpClient, CancellationToken stopToken, TaskCompletionSource<Attempt> firstResponse)
     {
         var account = attempt.Account;
@@ -403,8 +428,6 @@ internal sealed class ProxyService : IAsyncDisposable
         string? failureReason = null;
         try
         {
-            string requestBody = CaptureFormatting.BodyToText(requestBytes, context.Request.ContentType,
-                SplitHeader(context.Request.Headers.ContentEncoding.ToString()));
             AddNetworkMessage(record, "下游 → 上游", "Request Headers", CaptureFormatting.HeadersToText(
                 context.Request.Headers.Select(header => new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value.ToArray()!))));
             AddNetworkMessage(record, "下游 → 上游", "Request Body", requestBody);

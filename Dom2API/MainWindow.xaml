@@ -602,6 +602,7 @@
                                                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,20,0">
                                                         <TextBlock Text="{Binding DisplayName}" FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis" ToolTip="{Binding DisplayName}" />
                                                         <TextBlock Text="{Binding BaseUrl}" Foreground="#8A94A6" FontSize="11" Margin="0,5,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding BaseUrl}" />
+                                                        <TextBlock Text="{Binding ModelFilterText}" Foreground="#8A94A6" FontSize="11" Margin="0,5,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding ModelFilterText}" />
                                                     </StackPanel>
                                                     <Grid Grid.Column="3" Grid.ColumnSpan="2" VerticalAlignment="Center">
                                                         <Grid.ColumnDefinitions>

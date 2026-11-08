@@ -78,6 +78,18 @@
         <TextBlock Text="API 密钥" Grid.Row="2" VerticalAlignment="Center" />
         <PasswordBox x:Name="KeyBox" Grid.Row="2" Grid.Column="1" Padding="8" AutomationProperties.Name="API 密钥" />
         <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,14,0,0">
+            <TextBlock Text="模型过滤（正则表达式，可选）" Margin="0,0,0,8" />
+            <TextBox x:Name="ModelFilterBox" AutomationProperties.Name="模型过滤正则表达式" />
+            <TextBlock Text="留空不限模型；填写后仅调度匹配的模型。默认区分大小写。&#10;例如 ^(gpt-|claude-)；精确匹配可用 ^gpt-4o$。&#10;未指定模型的请求（如模型列表查询）不受限制。"
+                       Foreground="#7A849A" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,14" />
+            <DockPanel Margin="0,0,0,8">
+                <TextBlock Text="手动倍率" VerticalAlignment="Center" Margin="0,0,12,0" />
+                <CheckBox x:Name="AutoDetectRateBox" Content="自动检测倍率" DockPanel.Dock="Right" VerticalAlignment="Center"
+                          Margin="16,0,0,0" AutomationProperties.Name="自动检测倍率" />
+                <TextBox x:Name="ManualRateBox" AutomationProperties.Name="手动倍率" />
+            </DockPanel>
+            <TextBlock Text="开启自动检测：优先使用检测结果，失败后回退到手动倍率。&#10;关闭自动检测：直接使用手动倍率。支持 0 及非负小数。"
+                       Foreground="#7A849A" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14" />
             <CheckBox x:Name="UseProxyBox" Content="使用 Socks5 代理" AutomationProperties.Name="使用 Socks5 代理" />
             <TextBox x:Name="ProxyBox" Margin="0,8,0,0" Text="socks5://127.0.0.1:1080"
                      IsEnabled="{Binding IsChecked, ElementName=UseProxyBox}" AutomationProperties.Name="Socks5 代理地址" />

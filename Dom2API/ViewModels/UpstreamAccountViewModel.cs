@@ -30,10 +30,12 @@ internal sealed class UpstreamAccountViewModel(UpstreamAccount account) : INotif
     }
     public string DisplayName => string.IsNullOrWhiteSpace(Account.Name) ? $"账号{Order}" : Account.Name;
     public string BaseUrl => Account.BaseUrl;
+    public string ModelFilterText => string.IsNullOrWhiteSpace(Account.ModelFilter) ? "模型：不限" : $"模型正则：{Account.ModelFilter}";
     public bool IsEnabled => Account.IsEnabled;
-    public string RateText => billing.RateText;
-    public string BillingDetails => string.Join("\n", new[] { billing.Status, billing.Details }.Where(value => value.Length > 0));
-    public bool CanRefresh => !billing.IsRefreshing;
+    private UpstreamBillingState DisplayBilling => Account.AutoDetectRate ? billing : UpstreamBillingState.Manual(Account.ManualRate);
+    public string RateText => DisplayBilling.RateText;
+    public string BillingDetails => string.Join("\n", new[] { DisplayBilling.Status, DisplayBilling.Details }.Where(value => value.Length > 0));
+    public bool CanRefresh => Account.AutoDetectRate && !billing.IsRefreshing;
     public string HealthText => health.Status switch
     {
         UpstreamHealthStatus.Error => "错误",
@@ -83,7 +85,11 @@ internal sealed class UpstreamAccountViewModel(UpstreamAccount account) : INotif
         Notify(nameof(Account));
         Notify(nameof(DisplayName));
         Notify(nameof(BaseUrl));
+        Notify(nameof(ModelFilterText));
         Notify(nameof(IsEnabled));
+        Notify(nameof(RateText));
+        Notify(nameof(BillingDetails));
+        Notify(nameof(CanRefresh));
     }
 
     public void Update(UpstreamHealth newHealth, UpstreamBillingState newBilling)

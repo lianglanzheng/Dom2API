@@ -38,6 +38,13 @@ public sealed record UpstreamAccount
     /// <summary>可选的 Socks5 代理地址；未配置时直连。</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public string? Proxy { get; set; }
+    /// <summary>可选的模型匹配正则表达式；空值表示不限制模型。</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? ModelFilter { get; set; }
+    /// <summary>手动倍率，自动检测失败或关闭时使用。</summary>
+    public decimal ManualRate { get; set; } = 1;
+    /// <summary>是否优先自动检测倍率；旧配置默认开启。</summary>
+    public bool AutoDetectRate { get; set; } = true;
     /// <summary>是否参与调度。</summary>
     public bool IsEnabled { get; set; } = true;
 }

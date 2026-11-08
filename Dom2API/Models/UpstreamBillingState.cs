@@ -6,6 +6,10 @@ internal sealed record UpstreamBillingState
     /// <summary>获取尚未获得声明时的空状态。</summary>
     public static UpstreamBillingState Empty { get; } = new() { Status = "" };
 
+    /// <summary>创建直接使用或检测失败后回退的手动倍率快照。</summary>
+    public static UpstreamBillingState Manual(decimal rate, string status = "自动检测已关闭，使用手动倍率")
+        => new() { BaseRate = rate, EffectiveRate = rate, Source = "手动设置的上游倍率", Status = status };
+
     /// <summary>获取查询状态或失败说明。</summary>
     public string Status { get; init; } = "";
 
@@ -31,5 +35,6 @@ internal sealed record UpstreamBillingState
     public string RateText => EffectiveRate is { } rate ? $"{rate:G29}×" : "—";
 
     /// <summary>获取成功查询和上游声明时间。</summary>
-    public string Details => ReceivedAt is not null ? $"{Source}\n更新于 {ReceivedAt:HH:mm:ss}" : "";
+    public string Details => ReceivedAt is not null ? $"{Source}\n更新于 {ReceivedAt:HH:mm:ss}"
+        : EffectiveRate is not null ? Source : "";
 }

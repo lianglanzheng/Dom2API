@@ -38,6 +38,7 @@ internal sealed class UpstreamBillingMonitor : IAsyncDisposable
         this.interval = interval ?? TimeSpan.FromMinutes(30);
         this.requestTimeout = requestTimeout ?? TimeSpan.FromSeconds(10);
         stopToken = shutdown.Token;
+        if (!settings.AutoDetectRate) state = UpstreamBillingState.Manual(settings.ManualRate);
     }
 
     /// <summary>获取可跨线程读取的不可变快照。</summary>
@@ -46,7 +47,7 @@ internal sealed class UpstreamBillingMonitor : IAsyncDisposable
     /// <summary>立即开始首次查询，不阻塞代理启动。</summary>
     public void Start()
     {
-        if (runner is not null || stopToken.IsCancellationRequested)
+        if (!settings.AutoDetectRate || runner is not null || stopToken.IsCancellationRequested)
         {
             return;
         }
@@ -98,7 +99,7 @@ internal sealed class UpstreamBillingMonitor : IAsyncDisposable
     /// <summary>手动或定时查询，合并并发触发；失败时不保留可能已过时的倍率。</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        if (stopToken.IsCancellationRequested || !await refreshLock.WaitAsync(0).ConfigureAwait(false))
+        if (!settings.AutoDetectRate || stopToken.IsCancellationRequested || !await refreshLock.WaitAsync(0).ConfigureAwait(false))
         {
             return;
         }
@@ -117,14 +118,15 @@ internal sealed class UpstreamBillingMonitor : IAsyncDisposable
             cancellation.Token.ThrowIfCancellationRequested();
             if (result.EffectiveRate is null && fallback is not null)
             {
-                state = new() { Status = "Sub2API 查询失败，正在查询 New API 站点账号…", IsRefreshing = true };
+                state = previous with { Status = "Sub2API 查询失败，正在查询 New API 站点账号…", IsRefreshing = true };
                 var alternative = await fallback(settings, cancellation.Token).ConfigureAwait(false);
                 result = alternative.EffectiveRate is not null ? alternative
                     : alternative with { Status = result.Status + "\n" + alternative.Status };
             }
             cancellation.Token.ThrowIfCancellationRequested();
             if (result.EffectiveRate is not null) supported = true;
-            state = result;
+            state = result.EffectiveRate is not null ? result
+                : UpstreamBillingState.Manual(settings.ManualRate, result.Status + "\n自动检测失败，已回退到手动倍率");
         }
         catch (OperationCanceledException) when (stopToken.IsCancellationRequested || cancellationToken.IsCancellationRequested)
         {

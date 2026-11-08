@@ -1,4 +1,6 @@
-﻿namespace Dom2API.Models;
+﻿using System.Text.RegularExpressions;
+
+namespace Dom2API.Models;
 
 /// <summary>一次服务运行的监听与调度配置。</summary>
 public sealed class ProxySettings
@@ -39,6 +41,8 @@ public sealed class ProxySettings
 /// <summary>已验证的独立上游连接快照。</summary>
 public sealed record UpstreamSettings
 {
+    private readonly Regex? modelFilter;
+
     /// <summary>稳定账号标识。</summary>
     public string Id { get; }
     /// <summary>账号序号。</summary>
@@ -53,6 +57,10 @@ public sealed record UpstreamSettings
     public string ApiKey { get; }
     /// <summary>已验证的 Socks5 代理地址；空值表示直连。</summary>
     public string? Proxy { get; }
+    /// <summary>自动检测失败或关闭时使用的手动倍率。</summary>
+    public decimal ManualRate { get; }
+    /// <summary>是否优先自动检测倍率。</summary>
+    public bool AutoDetectRate { get; }
 
     /// <summary>验证账号，检查回环地址和凭据换行。</summary>
     public UpstreamSettings(UpstreamAccount account, int order, int port)
@@ -73,5 +81,27 @@ public sealed record UpstreamSettings
         UpstreamBaseUri = uri;
         ApiKey = account.ApiKey.Trim();
         Proxy = Socks5Proxy.Normalize(account.Proxy);
+        if (account.ManualRate < 0) throw new ArgumentException("手动倍率必须是大于或等于零的数值。");
+        ManualRate = account.ManualRate;
+        AutoDetectRate = account.AutoDetectRate;
+        if (!string.IsNullOrWhiteSpace(account.ModelFilter))
+        {
+            try
+            {
+                modelFilter = new Regex(account.ModelFilter, RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+            }
+            catch (ArgumentException exception)
+            {
+                throw new ArgumentException($"账号“{DisplayName}”的模型过滤正则表达式无效：{exception.Message}", exception);
+            }
+        }
+    }
+
+    /// <summary>无过滤规则或请求未指定模型时放行；正则匹配超时视为不匹配。</summary>
+    public bool MatchesModel(string? model)
+    {
+        if (modelFilter is null || model is null) return true;
+        try { return modelFilter.IsMatch(model); }
+        catch (RegexMatchTimeoutException) { return false; }
     }
 }
