@@ -294,9 +294,14 @@ internal sealed class ProxyService : IAsyncDisposable
             byte[] requestBytes = requestCapture.ToArray();
             string requestBody = CaptureFormatting.BodyToText(requestBytes, context.Request.ContentType,
                 SplitHeader(context.Request.Headers.ContentEncoding.ToString()));
-            string? model = ReadRequestModel(requestBody);
+            string? model = await RequestModelReader.ReadAsync(requestBytes, requestBody, context.Request.ContentType,
+                SplitHeader(context.Request.Headers.ContentEncoding.ToString()), token).ConfigureAwait(false);
             string rawTarget = context.Features.Get<IHttpRequestFeature>()?.RawTarget
                 ?? context.Request.Path + context.Request.QueryString;
+            string analysisBody = ImageProtocolAnalyzer.IsImagePath(rawTarget)
+                ? await ImageProtocolAnalyzer.ReadRequestAsync(requestBytes, requestBody, context.Request.ContentType,
+                    SplitHeader(context.Request.Headers.ContentEncoding.ToString()), token).ConfigureAwait(false)
+                : requestBody;
             // 此处只缓存可重放的下游正文，不创建额外的“父请求”记录。
             Task nextHedge = Task.CompletedTask;
             while (true)
@@ -345,7 +350,7 @@ internal sealed class ProxyService : IAsyncDisposable
                         var attempt = new Attempt(account, token);
                         attempts.Add(attempt);
                         pending.Add(attempt);
-                        attempt.Completion = RunAttemptAsync(context, attempt, rawTarget, requestBytes, requestBody,
+                        attempt.Completion = RunAttemptAsync(context, attempt, rawTarget, requestBytes, requestBody, analysisBody, model,
                             httpClients.Get(account.Settings.Proxy), stopToken, firstResponse);
                         nextHedge = Task.Delay(timeout, delays.Token);
                     }
@@ -390,20 +395,7 @@ internal sealed class ProxyService : IAsyncDisposable
         }
     }
 
-    private static string? ReadRequestModel(string body)
-    {
-        if (string.IsNullOrWhiteSpace(body)) return null;
-        try
-        {
-            using var document = JsonDocument.Parse(body);
-            return document.RootElement.ValueKind == JsonValueKind.Object
-                && document.RootElement.TryGetProperty("model", out var model) && model.ValueKind == JsonValueKind.String
-                ? model.GetString() : null;
-        }
-        catch (JsonException) { return null; }
-    }
-
-    private async Task RunAttemptAsync(HttpContext context, Attempt attempt, string rawTarget, byte[] requestBytes, string requestBody,
+    private async Task RunAttemptAsync(HttpContext context, Attempt attempt, string rawTarget, byte[] requestBytes, string requestBody, string analysisBody, string? model,
         HttpClient httpClient, CancellationToken stopToken, TaskCompletionSource<Attempt> firstResponse)
     {
         var account = attempt.Account;
@@ -431,9 +423,10 @@ internal sealed class ProxyService : IAsyncDisposable
             AddNetworkMessage(record, "下游 → 上游", "Request Headers", CaptureFormatting.HeadersToText(
                 context.Request.Headers.Select(header => new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value.ToArray()!))));
             AddNetworkMessage(record, "下游 → 上游", "Request Body", requestBody);
-            analyzer.AnalyzeRequest(record, requestBody,
+            analyzer.AnalyzeRequest(record, analysisBody,
                 context.Request.Headers["session-id"].ToString(), context.Request.Headers["X-Session-Id"].ToString(),
                 context.Request.Headers["thread-id"].ToString(), context.Request.Headers["X-Thread-Id"].ToString());
+            record.Model = model ?? record.Model;
             var target = BuildTarget(settings.UpstreamBaseUri, rawTarget);
             record.UpstreamUrl = target.AbsoluteUri;
             using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), target);
@@ -526,6 +519,7 @@ internal sealed class ProxyService : IAsyncDisposable
                         if (!await nextEvent.ConfigureAwait(false)) break;
                         var item = events.Current;
                         AddNetworkMessage(record, "上游 → 下游", "SSE · " + item.EventType, item.Data);
+                        ImageProtocolAnalyzer.AnalyzeEvent(record, item.EventType, item.Data);
                         if (waitForSse && !selected && item.Data.Trim() == "[DONE]")
                             throw new IOException("上游 SSE 在首个有效事件前已结束（[DONE]）。");
                         if (!IsEffectiveSseEvent(item))
@@ -614,6 +608,7 @@ internal sealed class ProxyService : IAsyncDisposable
             try
             {
                 await analyzer.AnalyzeResponseAsync(record, body, isEventStream).ConfigureAwait(false);
+                if (isEventStream) ImageProtocolAnalyzer.CompleteStream(record);
                 if (!transferFailed && record.IsFailure) account.Health.ReportFailure(record.Id, record.Error);
             }
             catch (Exception exception)

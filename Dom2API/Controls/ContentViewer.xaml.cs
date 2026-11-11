@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using Dom2API.Services;
+using Dom2API.Models;
 
 namespace Dom2API.Controls;
 
@@ -14,6 +15,18 @@ public partial class ContentViewer : UserControl
         nameof(Text), typeof(string), typeof(ContentViewer), new PropertyMetadata("", Text_Changed));
 
     private bool hasStructure;
+
+    /// <summary>当前消息关联的图片集合。</summary>
+    public static readonly DependencyProperty ImagesProperty = DependencyProperty.Register(nameof(Images),
+        typeof(IReadOnlyList<ImageAttachment>), typeof(ContentViewer),
+        new PropertyMetadata(null, (sender, _) => ((ContentViewer)sender).UpdateDisplay()));
+
+    /// <summary>在原始内容之外提供图片预览。</summary>
+    public IReadOnlyList<ImageAttachment>? Images
+    {
+        get => (IReadOnlyList<ImageAttachment>?)GetValue(ImagesProperty);
+        set => SetValue(ImagesProperty, value);
+    }
 
     /// <summary>获取或设置原始内容，不对其格式或换行进行改写。</summary>
     public string Text
@@ -56,8 +69,13 @@ public partial class ContentViewer : UserControl
     /// </summary>
     private void UpdateDisplay()
     {
-        bool showTree = hasStructure && PlainTextOption.IsChecked != true;
+        bool hasImages = Images is { Count: > 0 };
+        PlainTextOption.Visibility = hasStructure || hasImages ? Visibility.Visible : Visibility.Collapsed;
+        PlainTextOption.Content = hasImages ? "原始内容" : "纯文本";
+        bool showImages = hasImages && PlainTextOption.IsChecked != true;
+        bool showTree = !showImages && hasStructure && PlainTextOption.IsChecked != true;
+        ImageGallery.Visibility = showImages ? Visibility.Visible : Visibility.Collapsed;
         ContentTree.Visibility = showTree ? Visibility.Visible : Visibility.Collapsed;
-        PlainText.Visibility = showTree ? Visibility.Collapsed : Visibility.Visible;
+        PlainText.Visibility = showTree || showImages ? Visibility.Collapsed : Visibility.Visible;
     }
 }

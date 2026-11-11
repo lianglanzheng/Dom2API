@@ -223,8 +223,7 @@ internal sealed class MainViewModel : INotifyPropertyChanged
             var previous = SelectedMessage;
             SetField(ref selectedSession, value);
             OnPropertyChanged(nameof(SessionMessages));
-            SelectedMessage = previous is not null && SessionMessages.Contains(previous)
-                ? previous : SessionMessages.FirstOrDefault();
+            SelectedMessage = FindMatchingMessage(previous) ?? SessionMessages.FirstOrDefault();
         }
     }
 
@@ -264,7 +263,7 @@ internal sealed class MainViewModel : INotifyPropertyChanged
             if (SelectedMessage is null) return "";
             var request = Requests.FirstOrDefault(item => item.Id == SelectedMessage.RequestId);
             return request is null ? $"请求 ID：{SelectedMessage.RequestId}" :
-                $"请求 ID：{request.Id}    上游：{request.UpstreamName}";
+                $"请求 ID：{request.Id}    上游：{request.UpstreamName}\n{request.ImageSummary}".TrimEnd();
         }
     }
 
@@ -281,7 +280,7 @@ internal sealed class MainViewModel : INotifyPropertyChanged
             + $"状态：{request.Status}    HTTP：{request.StatusCode}    总耗时：{request.DurationMilliseconds:N0} ms    "
             + $"首字节：{(request.FirstByteMilliseconds is { } firstByte ? $"{firstByte:N0} ms" : "未收到")}    "
             + $"首响应：{(request.FirstResponseMilliseconds is { } firstResponse ? $"{firstResponse:N0} ms" : "未收到")}\n"
-            + $"输入 Token：{request.InputTokens}    输出 Token：{request.OutputTokens}\n{request.Error}\n{request.CloseReason}\n{request.AnalysisNote}".TrimEnd()
+            + $"输入 Token：{request.InputTokens}    输出 Token：{request.OutputTokens}\n{request.ImageSummary}\n{request.Error}\n{request.CloseReason}\n{request.AnalysisNote}".TrimEnd()
         : "";
 
     /// <summary>获取请求总数。</summary>
@@ -323,6 +322,20 @@ internal sealed class MainViewModel : INotifyPropertyChanged
 
     /// <summary>获取 Token 用量覆盖情况。</summary>
     public string UsageCoverage => $"已报告用量：{Requests.Count(request => request.Usage is not null)} / {TotalRequests} 个请求";
+
+    /// <summary>生图请求与完整图片统计，局部预览不计入数量。</summary>
+    public string ImageStatistics
+    {
+        get
+        {
+            var images = Requests.Where(request => request.HasImageActivity).ToArray();
+            if (images.Length == 0) return "";
+            var timings = images.Where(request => request.ImageCompletionMilliseconds is not null)
+                .Select(request => request.ImageCompletionMilliseconds!.Value).ToArray();
+            string average = timings.Length > 0 ? $"{timings.Average() / 1000:N1} s" : "未知";
+            return $"生图请求：{images.Length}    完整图片：{images.Sum(request => request.GeneratedImageCount)} 张    平均图片就绪：{average}    已报告生图用量：{images.Count(request => request.ImageUsage is not null)} / {images.Length}";
+        }
+    }
 
     /// <summary>
     /// 清空内存中的请求、对话、消息、网络事件和统计结果。
@@ -367,15 +380,19 @@ internal sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(Sessions));
         SelectedSession = Sessions.FirstOrDefault(session => session.Id == sessionId) ?? Sessions.FirstOrDefault();
         SelectedRequest = Requests.FirstOrDefault(request => request.Id == requestId) ?? Requests.FirstOrDefault();
-        SelectedMessage = SessionMessages.Contains(message!) ? message : SessionMessages.FirstOrDefault();
+        SelectedMessage = FindMatchingMessage(message) ?? SessionMessages.FirstOrDefault();
         SelectedNetworkMessage = NetworkMessages.FirstOrDefault(item => item.Sequence == networkSequence)
             ?? NetworkMessages.FirstOrDefault();
         foreach (string property in new[] { nameof(TotalRequests), nameof(SuccessfulRequests), nameof(FailedRequests),
-            nameof(ActiveRequests), nameof(ActiveRequestSummary), nameof(CanClearRecords), nameof(AverageDuration), nameof(InputTokens), nameof(OutputTokens), nameof(TotalTokens), nameof(UsageCoverage) })
+            nameof(ActiveRequests), nameof(ActiveRequestSummary), nameof(CanClearRecords), nameof(AverageDuration), nameof(InputTokens), nameof(OutputTokens), nameof(TotalTokens), nameof(UsageCoverage), nameof(ImageStatistics) })
         {
             OnPropertyChanged(property);
         }
     }
+
+    private MessageEntry? FindMatchingMessage(MessageEntry? previous)
+        => previous is null ? null : SessionMessages.FirstOrDefault(item => ReferenceEquals(item, previous)
+            || previous.ImageKey.Length > 0 && item.RequestId == previous.RequestId && item.ImageKey == previous.ImageKey);
 
     /// <summary>
     /// 通知服务启停相关控件更新可用状态。

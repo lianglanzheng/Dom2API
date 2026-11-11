@@ -26,6 +26,7 @@ internal sealed class ProtocolAnalyzer
     {
         record.SessionId = FirstNonEmpty(sessionIdHeader, xSessionIdHeader) ?? record.Id;
         record.ThreadId = FirstNonEmpty(threadIdHeader, xThreadIdHeader) ?? record.Id;
+        if (ImageProtocolAnalyzer.IsImagePath(record.Path)) record.ImageStatus = "等待生成结果";
         if (string.IsNullOrWhiteSpace(body))
         {
             return;
@@ -51,6 +52,12 @@ internal sealed class ProtocolAnalyzer
                 xThreadIdHeader,
                 ReadSessionId(root, "metadata", "thread_id"),
                 ReadSessionId(root, "client_metadata", "thread_id")) ?? record.Id;
+
+            if (ImageProtocolAnalyzer.IsImagePath(record.Path))
+            {
+                ImageProtocolAnalyzer.AnalyzeRequest(record, root);
+                return;
+            }
 
             if (IsChatCompletions(record.Path) && root.TryGetProperty("messages", out var messages))
             {
@@ -98,6 +105,11 @@ internal sealed class ProtocolAnalyzer
     /// </summary>
     public async Task AnalyzeResponseAsync(CaptureRecord record, string body, bool isEventStream)
     {
+        if (ImageProtocolAnalyzer.IsImagePath(record.Path))
+        {
+            if (!isEventStream) ImageProtocolAnalyzer.AnalyzeResponse(record, body);
+            return;
+        }
         if ((!IsChatCompletions(record.Path) && !IsResponses(record.Path))
             || record.StatusCode is not (>= 200 and < 300))
         {
@@ -190,9 +202,18 @@ internal sealed class ProtocolAnalyzer
             {
                 if (!hasProtocolMessages)
                 {
-                    record.Messages.AddRange(MessageProjection.Create(response.Messages, record.Id, "响应", IsResponses(record.Path)));
+                    foreach (var entry in MessageProjection.Create(response.Messages, record.Id, "响应", IsResponses(record.Path)))
+                    {
+                        if (IsResponses(record.Path) && entry.Kind == "image_generation_call")
+                        {
+                            using var item = JsonDocument.Parse(entry.Content);
+                            ImageProtocolAnalyzer.AnalyzeResponseItem(record, item.RootElement, 0);
+                        }
+                        else record.Messages.Add(entry);
+                    }
                 }
-                record.Usage ??= response.Usage;
+                if (IsResponses(record.Path)) record.Usage = response.Usage ?? record.Usage;
+                else record.Usage ??= response.Usage;
                 record.Response ??= response;
                 if (!string.IsNullOrEmpty(response.ModelId))
                 {
@@ -313,12 +334,15 @@ internal sealed class ProtocolAnalyzer
 
         using var finalDocument = JsonDocument.Parse(finalResponse);
         var finalRoot = finalDocument.RootElement;
+        if (IsResponses(record.Path) && ImageProtocolAnalyzer.ReadUsage(finalRoot) is { } usage) record.Usage = usage;
         if (IsResponses(record.Path) && finalRoot.TryGetProperty("output", out var output)
             && output.ValueKind == JsonValueKind.Array)
         {
+            int index = 0;
             foreach (var item in output.EnumerateArray())
             {
-                record.Messages.AddRange(MessageProjection.CreateProtocol(item, record.Id, "响应"));
+                if (!ImageProtocolAnalyzer.AnalyzeResponseItem(record, item, index++))
+                    record.Messages.AddRange(MessageProjection.CreateProtocol(item, record.Id, "响应"));
             }
 
             return true;

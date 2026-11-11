@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="Dom2API.Controls.ImagePreview"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Loaded="Preview_Loaded" Unloaded="Preview_Unloaded">
+    <Border BorderBrush="#DDE3EB" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+        <StackPanel>
+            <TextBlock x:Name="ImageName" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <Image x:Name="Thumbnail" MaxHeight="240" MaxWidth="480" Stretch="Uniform" Margin="0,10" HorizontalAlignment="Left" />
+            <WrapPanel>
+                <Button x:Name="LoadButton" Content="加载预览" Click="Load_Click" Padding="10,5" Margin="0,0,8,6" />
+                <Button x:Name="ZoomButton" Content="放大" Click="Zoom_Click" IsEnabled="False" Padding="10,5" Margin="0,0,8,6" />
+                <Button x:Name="CopyButton" Content="复制图片" Click="Copy_Click" IsEnabled="False" Padding="10,5" Margin="0,0,8,6" />
+                <Button x:Name="SaveButton" Content="保存图片" Click="Save_Click" IsEnabled="False" Padding="10,5" Margin="0,0,8,6" />
+            </WrapPanel>
+            <TextBlock x:Name="StatusText" Foreground="#626B72" TextWrapping="Wrap" />
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -447,7 +447,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <Grid Grid.Row="0" TextElement.FontSize="12" Margin="0,-16,0,0">
+                        <StackPanel Grid.Row="0" TextElement.FontSize="12" Margin="0,-16,0,0">
                             <UniformGrid Columns="8">
                                 <UniformGrid.Resources>
                                     <Style TargetType="TextBlock">
@@ -487,7 +487,15 @@
                                     <TextBlock Text="{Binding TotalTokens}" Margin="0,6,0,0" />
                                 </StackPanel>
                             </UniformGrid>
-                        </Grid>
+                            <TextBlock Text="{Binding ImageStatistics}" Foreground="#626B72" Margin="0,12,0,0" TextWrapping="Wrap"
+                                       ToolTip="图片就绪耗时从请求开始计至最后一张完整图片到达；用量只统计上游实际报告的数值。">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed" /></Trigger></Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
                         <Border Grid.Row="1" BorderBrush="#E1E5E8" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,28,0,0">
                             <StackPanel>
                                 <TextBlock Text="连接配置" Style="{StaticResource SectionTitle}" />
@@ -855,7 +863,7 @@
                                     <RowDefinition Height="8" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="{Binding SelectedMessageDetails}" Margin="13,12,18,8" Foreground="#6A758C" TextWrapping="Wrap" />
-                                <controls:ContentViewer Grid.Row="1" Text="{Binding SelectedMessage.Content, Mode=OneWay}" AutomationProperties.Name="消息详情" />
+                                <controls:ContentViewer Grid.Row="1" Text="{Binding SelectedMessage.Content, Mode=OneWay}" Images="{Binding SelectedMessage.Images, Mode=OneWay}" AutomationProperties.Name="消息详情" />
                             </Grid>
                         </Border>
                     </Grid>

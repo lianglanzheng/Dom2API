@@ -1,7 +1,8 @@
 ﻿<UserControl x:Class="Dom2API.Controls.ContentViewer"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:models="clr-namespace:Dom2API.Models" Background="White">
+             xmlns:models="clr-namespace:Dom2API.Models"
+             xmlns:controls="clr-namespace:Dom2API.Controls" Background="White">
     <UserControl.Resources>
         <HierarchicalDataTemplate DataType="{x:Type models:ContentTreeNode}" ItemsSource="{Binding Children}">
             <HierarchicalDataTemplate.ItemContainerStyle>
@@ -22,6 +23,13 @@
                       Visibility="Collapsed" Click="PlainTextOption_Click" AutomationProperties.Name="切换纯文本显示" />
             <TextBlock x:Name="FormatLabel" Text="纯文本" Foreground="#626B72" />
         </DockPanel>
+        <ScrollViewer x:Name="ImageGallery" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Padding="14,4">
+            <ItemsControl ItemsSource="{Binding Images, RelativeSource={RelativeSource AncestorType={x:Type controls:ContentViewer}}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate><controls:ImagePreview Attachment="{Binding}" /></DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
         <TreeView x:Name="ContentTree" Grid.Row="1" BorderThickness="0" Padding="10,4"
                   Visibility="Collapsed" VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"

@@ -26,11 +26,18 @@ public sealed class MessageEntry
     /// <summary>获取或设置完整内容。</summary>
     public string Content { get; set; } = "";
 
+    /// <summary>关联图片；预览控件按需加载，原始协议内容继续保留。</summary>
+    public IReadOnlyList<ImageAttachment> Images { get; set; } = [];
+
+    /// <summary>同一流式图片的稳定标识，用于替换预览并保持界面选择。</summary>
+    internal string ImageKey { get; init; } = "";
+
     /// <summary>获取原始内容的第一行，不限制字符数或追加省略号。</summary>
     public string Preview
     {
         get
         {
+            if (Images.Count > 0) return Name.Length > 0 ? Name : $"图片（{Images.Count} 张）";
             int lineEnd = Content.AsSpan().IndexOfAny('\r', '\n');
             return lineEnd >= 0 ? Content[..lineEnd] : Content;
         }

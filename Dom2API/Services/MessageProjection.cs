@@ -127,7 +127,8 @@ internal static class MessageProjection
             Role = role,
             Kind = kind.Length == 0 ? fallbackKind : kind,
             Name = string.Join(" · ", new[] { itemName.Length == 0 ? name : itemName, id }.Where(part => part.Length > 0)),
-            Content = text
+            Content = text,
+            Images = kind is "input_image" or "image_url" ? ImageProtocolAnalyzer.ReadInputAttachments(value) : []
         };
     }
 
