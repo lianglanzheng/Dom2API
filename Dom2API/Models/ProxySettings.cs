@@ -7,7 +7,7 @@ public sealed class ProxySettings
 {
     /// <summary>监听端口。</summary>
     public int Port { get; }
-    /// <summary>响应健康阈值，同时作为未选定上游时追加账号的等待间隔。</summary>
+    /// <summary>响应健康阈值，同时作为追加账号的等待间隔和模型列表查询的完整响应超时。</summary>
     public TimeSpan TimeoutThreshold { get; }
     /// <summary>健康状态与延迟样本的保留时长。</summary>
     public TimeSpan Cooldown { get; }

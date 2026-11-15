@@ -172,7 +172,7 @@ try {
     if ($plan.UseBroker -and [System.IO.File]::Exists((Join-Path $installDirectory 'Dom2API.settings.json'))) {
         $savedSettings = Join-Path $applicationDirectory 'Dom2API.settings.json'
         $stagedSettings = Join-Path $installDirectory 'Dom2API.settings.json'
-        if ([System.IO.File]::Exists($savedSettings)) { [System.IO.File]::Replace($stagedSettings, $savedSettings, $null) }
+        if ([System.IO.File]::Exists($savedSettings)) { [System.IO.File]::Replace($stagedSettings, $savedSettings, [NullString]::Value) }
         else { [System.IO.File]::Move($stagedSettings, $savedSettings) }
     }
     # 同卷原子替换并创建备份；短暂的杀毒软件文件锁会自动重试。

@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging;
 namespace Dom2API.Services;
 
 /// <summary>多上游 HTTP 透传、延迟并发调度及独立尝试记录。</summary>
-internal sealed class ProxyService : IAsyncDisposable
+internal sealed partial class ProxyService : IAsyncDisposable
 {
     private static readonly string[] HopByHopHeaders =
     [
@@ -289,6 +289,11 @@ internal sealed class ProxyService : IAsyncDisposable
         using var delays = CancellationTokenSource.CreateLinkedTokenSource(token);
         try
         {
+            if (IsModelListRequest(context.Request))
+            {
+                await ForwardModelsAsync(context, timeout, httpClients, token).ConfigureAwait(false);
+                return;
+            }
             using var requestCapture = new MemoryStream();
             await context.Request.Body.CopyToAsync(requestCapture, token).ConfigureAwait(false);
             byte[] requestBytes = requestCapture.ToArray();
